@@ -32,6 +32,11 @@ release_assoc_table = Table('app_releases', Base.metadata,
     Column('release_id', Integer, ForeignKey('releases.id'))
 )
 
+app_to_app = Table("app_to_app", Base.metadata,
+    Column("required_by", Integer, ForeignKey("apps.id"), primary_key=True),
+    Column("requires", Integer, ForeignKey("apps.id"), primary_key=True)
+)
+
 class App(Base):
     __tablename__ = 'apps'
 
@@ -50,6 +55,12 @@ class App(Base):
     releases = relationship('Release',
         secondary=release_assoc_table,
         backref='apps'
+    )
+    dependencies = relationship("App",
+                        secondary="app_to_app",
+                        primaryjoin="apps.c.id==app_to_app.c.required_by",
+                        secondaryjoin="apps.c.id==app_to_app.c.requires",
+                        backref="required_by"
     )
 
 class Provider(Base):

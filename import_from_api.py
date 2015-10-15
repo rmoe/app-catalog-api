@@ -35,8 +35,26 @@ def import_data():
             r = get_or_create(models.Release, release=release)
             app_db.releases.append(r)
 
+        if app.get('depends'):
+            app_db.dependencies = parse_deps(app)
+
         db.add(app_db)
     db.commit()
+
+
+def parse_deps(app):
+    result = []
+    for dep in app['depends']:
+        obj = db.query(models.App).filter_by(**dep).first()
+
+        if not obj:
+            print "WARNING: Could not find dependency {} for app {}".format(
+                dep, app['name'])
+            continue
+
+        result.append(obj)
+
+    return result
 
 def get_or_create(model, **data):
     existing_obj = db.query(model).filter_by(**data).first()
