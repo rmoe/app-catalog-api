@@ -3,15 +3,34 @@ from pecan import core
 from pecan import conf
 from appcatalog.model import models
 from sqlalchemy.orm import scoped_session, sessionmaker
+from toposort import toposort_flatten
 
 URL = 'http://apps.openstack.org/api/v1/assets'
 core.load_app('config.py')
 db = scoped_session(sessionmaker(autocommit=False,
                                  autoflush=True,
                                  bind=conf.sqlalchemy.engine))
-def import_data():
-    data = fetch_from_api(URL)
+
+def sort(data):
+    deps = {}
+    output = {}
     for app in data['assets']:
+        if app.get('depends'):
+            deps[app['name']] = set(d['name'] for d in app['depends'])
+        else:
+            deps[app['name']] = set()
+
+        output[app['name']] = app
+    #import pprint
+    #pprint.pprint(toposort_flatten(deps))
+    #assert False, 'asdf'
+    return toposort_flatten(deps), output
+
+
+def import_data():
+    order, data = sort(fetch_from_api(URL))
+    for index in order:
+        app = data[index]
         app_db = models.App(
             name=app['name'],
             description=app['description'],
